@@ -2,6 +2,19 @@
 CREATE DATABASE rull;
 USE rull;
 
+CREATE TABLE tb_domain_usia_anak (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    batas_bawah VARCHAR(10) NOT NULL,
+    batas_atas VARCHAR(10) NOT NULL,
+    fungsi VARCHAR(255) NOT NULL
+);
+
+INSERT INTO tb_domain_usia_anak (batas_bawah, batas_atas, fungsi) VALUES
+('-infinity', '6', '0'),
+('6', '9', '1'),
+('9', '11', '(11 - x) / (11 - 9)'),
+('11', '+infinity', '0');
+
 CREATE TABLE tb_domain_usia_remaja (
     id INT AUTO_INCREMENT PRIMARY KEY,
     batas_bawah VARCHAR(10) NOT NULL,
