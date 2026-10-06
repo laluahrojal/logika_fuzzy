@@ -1,0 +1,330 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# 1. OPERATOR T-NORM / INTERSECTION (AND)
+def tnorm_min(mu_a, mu_b):
+    """Zadeh Min"""
+    return np.minimum(mu_a, mu_b)
+
+
+def tnorm_product(mu_a, mu_b):
+    """Algebraic Product"""
+    return mu_a * mu_b
+
+
+def tnorm_bounded_diff(mu_a, mu_b):
+    """Bounded Difference / Lukasiewicz"""
+    return np.maximum(0.0, mu_a + mu_b - 1.0)
+
+# 2. OPERATOR T-CONORM / UNION (OR)
+def tconorm_max(mu_a, mu_b):
+    """Zadeh Max"""
+    return np.maximum(mu_a, mu_b)
+
+
+def tconorm_algebraic_sum(mu_a, mu_b):
+    """Algebraic Sum"""
+    return mu_a + mu_b - (mu_a * mu_b)
+
+
+def tconorm_bounded_sum(mu_a, mu_b):
+    """Bounded Sum / Lukasiewicz"""
+    return np.minimum(1.0, mu_a + mu_b)
+
+# 3. OPERATOR COMPLEMENT / NOT
+def fuzzy_not(mu):
+    """Zadeh Complement"""
+    return 1.0 - mu
+
+# 4. FUNGSI KEANGGOTAAN HIMPUNAN A
+#    A = Bandwidth Cukup
+#    Model Segitiga [30, 60, 90]
+def membership_a(x):
+
+    x = np.asarray(x, dtype=float)
+
+    return np.maximum(
+        0.0,
+        np.minimum(
+            (x - 30.0) / 30.0,
+            (90.0 - x) / 30.0
+        )
+    )
+
+# 5. FUNGSI KEANGGOTAAN HIMPUNAN B
+#    B = Packet Loss Rendah
+#    Model Trapesium [40, 55, 75, 95]
+def membership_b(x):
+
+    x = np.asarray(x, dtype=float)
+
+    return np.maximum(
+        0.0,
+        np.minimum(
+            1.0,
+            np.minimum(
+                (x - 40.0) / 15.0,
+                (95.0 - x) / 20.0
+            )
+        )
+    )
+
+# 6. MEMBANGUN SEMESTA DATA
+x = np.linspace(0, 100, 1001)
+
+mu_a = membership_a(x)
+mu_b = membership_b(x)
+
+# 7. MENGHITUNG OPERASI FUZZY
+# Intersection / AND
+hasil_min = tnorm_min(mu_a, mu_b)
+hasil_product = tnorm_product(mu_a, mu_b)
+hasil_bounded_diff = tnorm_bounded_diff(mu_a, mu_b)
+
+# Union / OR
+hasil_max = tconorm_max(mu_a, mu_b)
+hasil_algebraic_sum = tconorm_algebraic_sum(mu_a, mu_b)
+hasil_bounded_sum = tconorm_bounded_sum(mu_a, mu_b)
+
+# Complement / NOT
+hasil_not_a = fuzzy_not(mu_a)
+
+# 8. VISUALISASI
+fig, axes = plt.subplots(2, 2, figsize=(14, 9))
+
+# Grafik 1
+# Himpunan A, B, dan NOT A
+axes[0, 0].plot(
+    x,
+    mu_a,
+    label='A: Bandwidth Cukup',
+    linewidth=2.5
+)
+
+axes[0, 0].plot(
+    x,
+    mu_b,
+    label='B: Packet Loss Rendah',
+    linewidth=2.5
+)
+
+axes[0, 0].plot(
+    x,
+    hasil_not_a,
+    label='NOT A',
+    linestyle='--',
+    linewidth=1.8
+)
+
+axes[0, 0].set_title(
+    '1. Himpunan A, B, dan Komplemen NOT A',
+    fontweight='bold'
+)
+
+axes[0, 0].set_xlabel('Throughput (Mbps)')
+axes[0, 0].set_ylabel('Derajat Keanggotaan')
+axes[0, 0].set_ylim(-0.05, 1.1)
+axes[0, 0].grid(True, linestyle=':', alpha=0.6)
+axes[0, 0].legend()
+
+# Grafik 2
+# Intersection / AND / T-Norm
+axes[0, 1].plot(
+    x,
+    hasil_min,
+    label='Zadeh Min',
+    linewidth=2.5
+)
+
+axes[0, 1].plot(
+    x,
+    hasil_product,
+    label='Algebraic Product',
+    linestyle='-.',
+    linewidth=2
+)
+
+axes[0, 1].plot(
+    x,
+    hasil_bounded_diff,
+    label='Bounded Difference',
+    linestyle=':',
+    linewidth=2
+)
+
+axes[0, 1].set_title(
+    '2. Intersection (AND / T-Norm)',
+    fontweight='bold'
+)
+
+axes[0, 1].set_xlabel('Throughput (Mbps)')
+axes[0, 1].set_ylabel('Derajat Keanggotaan')
+axes[0, 1].set_ylim(-0.05, 1.1)
+axes[0, 1].grid(True, linestyle=':', alpha=0.6)
+axes[0, 1].legend()
+
+# Grafik 3
+# Union / OR / T-Conorm
+axes[1, 0].plot(
+    x,
+    hasil_max,
+    label='Zadeh Max',
+    linewidth=2.5
+)
+
+axes[1, 0].plot(
+    x,
+    hasil_algebraic_sum,
+    label='Algebraic Sum',
+    linestyle='-.',
+    linewidth=2
+)
+
+axes[1, 0].plot(
+    x,
+    hasil_bounded_sum,
+    label='Bounded Sum',
+    linestyle=':',
+    linewidth=2
+)
+
+axes[1, 0].set_title(
+    '3. Union (OR / T-Conorm)',
+    fontweight='bold'
+)
+
+axes[1, 0].set_xlabel('Throughput (Mbps)')
+axes[1, 0].set_ylabel('Derajat Keanggotaan')
+axes[1, 0].set_ylim(-0.05, 1.1)
+axes[1, 0].grid(True, linestyle=':', alpha=0.6)
+axes[1, 0].legend()
+
+# Grafik 4
+# Hubungan Irisan dan Gabungan
+axes[1, 1].fill_between(
+    x,
+    hasil_min,
+    alpha=0.4,
+    label='Area Min (A ∩ B)'
+)
+
+axes[1, 1].plot(
+    x,
+    hasil_max,
+    linewidth=2,
+    label='Batas Max (A ∪ B)'
+)
+
+axes[1, 1].plot(
+    x,
+    mu_a,
+    linestyle=':',
+    alpha=0.7,
+    label='A'
+)
+
+axes[1, 1].plot(
+    x,
+    mu_b,
+    linestyle=':',
+    alpha=0.7,
+    label='B'
+)
+
+axes[1, 1].set_title(
+    '4. Hubungan Irisan dan Gabungan Standar',
+    fontweight='bold'
+)
+
+axes[1, 1].set_xlabel('Throughput (Mbps)')
+axes[1, 1].set_ylabel('Derajat Keanggotaan')
+axes[1, 1].set_ylim(-0.05, 1.1)
+axes[1, 1].grid(True, linestyle=':', alpha=0.6)
+axes[1, 1].legend()
+
+
+# Merapikan grafik
+plt.tight_layout()
+
+
+
+# 9. PENGUJIAN NUMERIK
+uji = [35, 50, 65, 80]
+
+hasil_uji = []
+
+for v in uji:
+
+    # Derajat keanggotaan A dan B
+    a = float(membership_a(v))
+    b = float(membership_b(v))
+
+    # Intersection / AND
+    nilai_min = float(tnorm_min(a, b))
+    nilai_product = float(tnorm_product(a, b))
+    nilai_bounded_diff = float(
+        tnorm_bounded_diff(a, b)
+    )
+
+    # Union / OR
+    nilai_max = float(tconorm_max(a, b))
+    nilai_algebraic_sum = float(
+        tconorm_algebraic_sum(a, b)
+    )
+    nilai_bounded_sum = float(
+        tconorm_bounded_sum(a, b)
+    )
+
+    # Complement / NOT A
+    nilai_not_a = float(fuzzy_not(a))
+
+    hasil_uji.append([
+        v,
+        a,
+        b,
+        nilai_min,
+        nilai_product,
+        nilai_bounded_diff,
+        nilai_max,
+        nilai_algebraic_sum,
+        nilai_bounded_sum,
+        nilai_not_a
+    ])
+
+# 10. MEMBUAT TABEL HASIL PENGUJIAN
+df = pd.DataFrame(
+    hasil_uji,
+    columns=[
+        'Mbps',
+        'μA',
+        'μB',
+        'Min',
+        'Product',
+        'B.Diff',
+        'Max',
+        'Alg.Sum',
+        'B.Sum',
+        'NOT A'
+    ]
+)
+
+# 11. MENAMPILKAN HASIL NUMERIK
+print('\n')
+print('=' * 100)
+print('HASIL PENGUJIAN NUMERIK')
+print('=' * 100)
+
+print(
+    df.to_string(
+        index=False,
+        float_format=lambda x: f'{x:.4f}'
+    )
+)
+
+print('=' * 100)
+print('Input pengujian: 35, 50, 65, dan 80 Mbps')
+print('=' * 100)
+
+# 12. MENAMPILKAN GRAFIK
+plt.show()
