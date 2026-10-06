@@ -1,0 +1,238 @@
+
+import mysql.connector
+
+# ==========================================
+# 1. KONEKSI KE DATABASE MYSQL
+# ==========================================
+
+db = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="180706",
+    database="db_logika_fuzzy"
+)
+
+cursor = db.cursor()
+
+print("Koneksi ke database berhasil!")
+
+
+# ==========================================
+# 2. FUNGSI KEANGGOTAAN BAYI
+# ==========================================
+
+def fungsi_bayi_turun(x):
+    return (5 - x) / 2.5
+
+
+# ==========================================
+# 3. FUNGSI KEANGGOTAAN ANAK
+# ==========================================
+
+def fungsi_anak_turun(x):
+    return (12 - x) / 4
+
+
+# ==========================================
+# 4. FUNGSI KEANGGOTAAN REMAJA
+# ==========================================
+
+def fungsi_remaja_naik(x):
+    return (x - 10) / 2
+
+
+def fungsi_remaja_turun(x):
+    return (20 - x) / 2
+
+
+# ==========================================
+# 5. FUNGSI KEANGGOTAAN PEMUDA
+# ==========================================
+
+def fungsi_pemuda_naik(x):
+    return (x - 15) / 3
+
+
+def fungsi_pemuda_turun(x):
+    return (25 - x) / 3
+
+
+# ==========================================
+# 6. FUNGSI KEANGGOTAAN DEWASA
+# ==========================================
+
+def fungsi_dewasa_naik(x):
+    return (x - 18) / 2
+
+
+def fungsi_dewasa_turun(x):
+    return (65 - x) / 5
+
+
+# ==========================================
+# 7. FUNGSI KEANGGOTAAN LANSIA
+# ==========================================
+
+def fungsi_lansia_naik(x):
+    return (x - 60) / 5
+
+
+def fungsi_lansia_turun(x):
+    return (80 - x) / 5
+
+
+# ==========================================
+# 8. PEMETAAN NAMA FUNGSI DARI DATABASE
+# ==========================================
+
+daftar_fungsi = {
+    "fungsi_bayi_turun": fungsi_bayi_turun,
+    "fungsi_anak_turun": fungsi_anak_turun,
+
+    "fungsi_remaja_naik": fungsi_remaja_naik,
+    "fungsi_remaja_turun": fungsi_remaja_turun,
+
+    "fungsi_pemuda_naik": fungsi_pemuda_naik,
+    "fungsi_pemuda_turun": fungsi_pemuda_turun,
+
+    "fungsi_dewasa_naik": fungsi_dewasa_naik,
+    "fungsi_dewasa_turun": fungsi_dewasa_turun,
+
+    "fungsi_lansia_naik": fungsi_lansia_naik,
+    "fungsi_lansia_turun": fungsi_lansia_turun
+}
+
+
+# ==========================================
+# 9. DAFTAR TABEL USIA
+# ==========================================
+
+daftar_tabel = {
+    "Bayi": "tb_domain_usia_bayi",
+    "Anak": "tb_domain_usia_anak",
+    "Remaja": "tb_domain_usia_remaja",
+    "Pemuda": "tb_domain_usia_pemuda",
+    "Dewasa": "tb_domain_usia_dewasa",
+    "Lansia": "tb_domain_usia_lansia"
+}
+
+
+# ==========================================
+# 10. PROSES FUZZIFIKASI
+
+
+def fuzzifikasi(usia, tabel):
+
+    # Mengambil data interval dari database
+    query = f"""
+        SELECT usia_min, usia_max, nilai_fuzzy
+        FROM {tabel}
+        ORDER BY usia_min
+    """
+
+    cursor.execute(query)
+    data_interval = cursor.fetchall()
+
+    # Mencari interval usia yang sesuai
+    for usia_min, usia_max, nilai_fuzzy in data_interval:
+
+        # Batas bawah inklusif dan batas atas eksklusif
+        if usia_min <= usia < usia_max:
+
+            # Jika nilai keanggotaan berupa konstanta
+            if nilai_fuzzy == "0":
+                return 0.0, f"{usia_min}-{usia_max}", "0"
+
+            elif nilai_fuzzy == "1":
+                return 1.0, f"{usia_min}-{usia_max}", "1"
+
+            # Jika berupa nama fungsi Python
+            elif nilai_fuzzy in daftar_fungsi:
+
+                fungsi = daftar_fungsi[nilai_fuzzy]
+
+                hasil = fungsi(usia)
+
+                # Memastikan nilai keanggotaan berada pada 0 sampai 1
+                hasil = max(0.0, min(1.0, hasil))
+
+                return hasil, f"{usia_min}-{usia_max}", nilai_fuzzy
+
+            else:
+                raise ValueError(
+                    f"Fungsi {nilai_fuzzy} belum didefinisikan"
+                )
+
+    # Menangani usia yang tepat sama dengan batas maksimum
+    if data_interval:
+        usia_min, usia_max, nilai_fuzzy = data_interval[-1]
+
+        if usia == usia_max:
+
+            if nilai_fuzzy == "0":
+                return 0.0, f"{usia_min}-{usia_max}", "0"
+
+            elif nilai_fuzzy == "1":
+                return 1.0, f"{usia_min}-{usia_max}", "1"
+
+            elif nilai_fuzzy in daftar_fungsi:
+                fungsi = daftar_fungsi[nilai_fuzzy]
+                hasil = fungsi(usia)
+                hasil = max(0.0, min(1.0, hasil))
+
+                return hasil, f"{usia_min}-{usia_max}", nilai_fuzzy
+
+    return None, "Di luar domain", "-"
+
+
+# ==========================================
+# 11. INPUT USIA DAN HASIL FUZZIFIKASI
+# ==========================================
+
+try:
+    usia = float(input("Masukkan usia (tahun): "))
+
+    if usia < 0:
+        print("Usia tidak boleh negatif.")
+
+    else:
+        print("\nHASIL FUZZIFIKASI")
+        print("-" * 65)
+
+        print(
+            f"{'Kategori':<12}"
+            f"{'Interval':<15}"
+            f"{'Fungsi':<27}"
+            f"{'Mu(x)':>10}"
+        )
+
+        print("-" * 65)
+
+        for kategori, tabel in daftar_tabel.items():
+
+            hasil, interval, nama_fungsi = fuzzifikasi(
+                usia, tabel
+            )
+
+            if hasil is not None:
+                print(
+                    f"{kategori:<12}"
+                    f"{interval:<15}"
+                    f"{nama_fungsi:<27}"
+                    f"{hasil:>10.2f}"
+                )
+            else:
+                print(
+                    f"{kategori:<12}"
+                    f"{interval:<15}"
+                    f"{nama_fungsi:<27}"
+                    f"{'-':>10}"
+                )
+
+except ValueError as e:
+    print("Input atau proses tidak valid:", e)
+
+finally:
+    cursor.close()
+    db.close()
+    print("\nKoneksi database ditutup.")
