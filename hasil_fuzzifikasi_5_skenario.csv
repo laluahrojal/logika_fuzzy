@@ -1,0 +1,6 @@
+No,Kasus Uji,Latensi (ms),Packet Loss (%),Latensi Rendah,Latensi Sedang,Latensi Tinggi,Packet Loss Rendah,Packet Loss Sedang,Packet Loss Tinggi,,,
+1,Kondisi sangat baik,20,0.5,1,0,0,1,0,0,,,
+2,Kondisi transisi awal,90,2.5,0.2,0.3,0,0.25,0.25,0,,,
+3,Kondisi tengah,125,4,0,1,0,0,1,0,,,
+4,Kondisi transisi buruk,170,6.5,0,0.1,0.4,0,0,0.75,,,
+5,Kondisi ekstrem buruk,290,9.5,0,0,1,0,0,1,,,
