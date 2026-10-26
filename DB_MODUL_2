@@ -1,0 +1,133 @@
+-- 1. Buat Database
+CREATE DATABASE IF NOT EXISTS db_bansos_fuzzy;
+USE db_bansos_fuzzy;
+
+-- 2. Tabel Data Pemohon (Identitas)
+CREATE TABLE warga (
+    id_warga INT AUTO_INCREMENT PRIMARY KEY,
+    nik VARCHAR(16) NOT NULL UNIQUE,
+    nama_lengkap VARCHAR(100) NOT NULL,
+    alamat TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- 3. Tabel Parameter Fungsi Keanggotaan Trapesium
+CREATE TABLE parameter_trapesium (
+    id_param INT AUTO_INCREMENT PRIMARY KEY,
+    nama_variabel ENUM('penghasilan', 'jumlah_anak', 'ukuran_rumah', 'usia', 'jumlah_tanggungan', 'kelayakan') NOT NULL,
+    kategori VARCHAR(30) NOT NULL,
+    a_val DECIMAL(12,2) NOT NULL,
+    b_val DECIMAL(12,2) NOT NULL,
+    c_val DECIMAL(12,2) NOT NULL,
+    d_val DECIMAL(12,2) NOT NULL
+) ENGINE=InnoDB;
+
+-- 4. Tabel Rule Base (15 Aturan Fuzzy)
+CREATE TABLE rule_base (
+    id_rule INT AUTO_INCREMENT PRIMARY KEY,
+    kode_rule VARCHAR(10) NOT NULL UNIQUE,
+    penghasilan VARCHAR(20) NOT NULL,
+    jumlah_anak VARCHAR(20) NOT NULL,
+    ukuran_rumah VARCHAR(20) NOT NULL,
+    usia VARCHAR(20) NOT NULL,
+    jumlah_tanggungan VARCHAR(20) NOT NULL,
+    keputusan_output ENUM('Tidak_Layak', 'Menengah', 'Layak') NOT NULL
+) ENGINE=InnoDB;
+
+-- 5. Tabel Transaksi Input Pengajuan (Hanya 5 Input Utama)
+CREATE TABLE pengajuan_bansos (
+    id_pengajuan INT AUTO_INCREMENT PRIMARY KEY,
+    id_warga INT NOT NULL,
+    penghasilan_perbulan DECIMAL(12,2) NOT NULL, -- Input 1 (Rp)
+    jumlah_anak INT NOT NULL,                   -- Input 2 (Orang)
+    ukuran_rumah DECIMAL(8,2) NOT NULL,          -- Input 3 (m2)
+    usia INT NOT NULL,                           -- Input 4 (Tahun)
+    jumlah_tanggungan INT NOT NULL,              -- Input 5 (Orang)
+    tanggal_pengajuan DATE NOT NULL,
+    FOREIGN KEY (id_warga) REFERENCES warga(id_warga) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 6. Tabel Hasil Evaluasi Fuzzy (Output Defuzzifikasi)
+CREATE TABLE hasil_evaluasi_fuzzy (
+    id_evaluasi INT AUTO_INCREMENT PRIMARY KEY,
+    id_pengajuan INT NOT NULL UNIQUE,
+    skor_defuzzifikasi DECIMAL(5,2) NOT NULL, -- Skor Z (0 - 100)
+    status_keputusan ENUM('Tidak_Layak', 'Menengah', 'Layak') NOT NULL,
+    tanggal_evaluasi TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_pengajuan) REFERENCES pengajuan_bansos(id_pengajuan) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- ========================================================
+-- ISI DATA AWAL (SEED DATA)
+-- ========================================================
+
+-- Insert Parameter Trapesium
+INSERT INTO parameter_trapesium (nama_variabel, kategori, a_val, b_val, c_val, d_val) VALUES
+('penghasilan', 'Rendah', 0, 0, 1000000, 2000000),
+('penghasilan', 'Sedang', 1500000, 2500000, 3500000, 4500000),
+('penghasilan', 'Tinggi', 4000000, 5000000, 10000000, 10000000),
+('jumlah_anak', 'Sedikit', 0, 0, 1, 2),
+('jumlah_anak', 'Sedang', 1, 2, 3, 4),
+('jumlah_anak', 'Banyak', 3, 4, 10, 10),
+('ukuran_rumah', 'Kecil', 0, 0, 36, 54),
+('ukuran_rumah', 'Sedang', 45, 60, 72, 90),
+('ukuran_rumah', 'Besar', 80, 100, 300, 300),
+('usia', 'Muda', 0, 0, 25, 35),
+('usia', 'Paruh_Baya', 30, 40, 50, 55),
+('usia', 'Lanjut_Usia', 50, 60, 100, 100),
+('jumlah_tanggungan', 'Sedikit', 0, 0, 1, 2),
+('jumlah_tanggungan', 'Sedang', 2, 3, 4, 5),
+('jumlah_tanggungan', 'Banyak', 4, 6, 12, 12);
+
+-- Insert 15 Rule Base
+INSERT INTO rule_base (kode_rule, penghasilan, jumlah_anak, ukuran_rumah, usia, jumlah_tanggungan, keputusan_output) VALUES
+('R1', 'Rendah', 'Banyak', 'Kecil', 'Lanjut_Usia', 'Banyak', 'Layak'),
+('R2', 'Rendah', 'Banyak', 'Kecil', 'Paruh_Baya', 'Banyak', 'Layak'),
+('R3', 'Rendah', 'Sedang', 'Kecil', 'Lanjut_Usia', 'Sedang', 'Layak'),
+('R4', 'Rendah', 'Sedikit', 'Kecil', 'Muda', 'Banyak', 'Layak'),
+('R5', 'Rendah', 'Sedang', 'Sedang', 'Paruh_Baya', 'Sedang', 'Menengah'),
+('R6', 'Sedang', 'Banyak', 'Kecil', 'Lanjut_Usia', 'Banyak', 'Layak'),
+('R7', 'Sedang', 'Sedang', 'Sedang', 'Paruh_Baya', 'Sedang', 'Menengah'),
+('R8', 'Sedang', 'Sedikit', 'Sedang', 'Muda', 'Sedikit', 'Menengah'),
+('R9', 'Sedang', 'Banyak', 'Besar', 'Paruh_Baya', 'Sedang', 'Menengah'),
+('R10', 'Sedang', 'Sedikit', 'Besar', 'Muda', 'Sedikit', 'Tidak_Layak'),
+('R11', 'Tinggi', 'Sedikit', 'Besar', 'Muda', 'Sedikit', 'Tidak_Layak'),
+('R12', 'Tinggi', 'Sedang', 'Besar', 'Paruh_Baya', 'Sedikit', 'Tidak_Layak'),
+('R13', 'Tinggi', 'Banyak', 'Sedang', 'Lanjut_Usia', 'Banyak', 'Menengah'),
+('R14', 'Tinggi', 'Sedikit', 'Sedang', 'Paruh_Baya', 'Sedang', 'Tidak_Layak'),
+('R15', 'Rendah', 'Sedikit', 'Besar', 'Muda', 'Sedikit', 'Menengah');
+
+
+
+
+Saya ingin membuat aplikasi web "Sistem Pendukung Keputusan Penerimaan Bantuan Sosial Menggunakan Logika Fuzzy Mamdani (Fungsi Trapesium)".
+
+Tolong buatkan kode program lengkapnya (Frontend, Backend, dan Logika Fuzzy) dengan spesifikasi database dan algoritma berikut:
+
+1. SPESIFIKASI DATABASE (MySQL 'db_bansos_fuzzy'):
+   Gunakan struktur database lengkap berikut:
+   - Tabel 'warga': id_warga, nik, nama_lengkap, alamat, created_at.
+   - Tabel 'parameter_trapesium': id_param, nama_variabel, kategori, a_val, b_val, c_val, d_val.
+   - Tabel 'rule_base': id_rule, kode_rule, penghasilan, jumlah_anak, ukuran_rumah, usia, jumlah_tanggungan, keputusan_output.
+   - Tabel 'pengajuan_bansos': id_pengajuan, id_warga, penghasilan_perbulan, jumlah_anak, ukuran_rumah, usia, jumlah_tanggungan, tanggal_pengajuan.
+   - Tabel 'hasil_evaluasi_fuzzy': id_evaluasi, id_pengajuan, skor_defuzzifikasi, status_keputusan, tanggal_evaluasi.
+
+2. INPUT PEMOHON (5 Kriteria Utama):
+   - Penghasilan Perbulan (Rp)
+   - Jumlah Anak (Orang)
+   - Ukuran Rumah (m2)
+   - Usia (Tahun)
+   - Jumlah Tanggungan (Orang)
+
+3. LOGIKA FUZZY MAMDANI:
+   - Ambil nilai [a, b, c, d] fungsi keanggotaan trapesium secara dinamis dari tabel 'parameter_trapesium'.
+   - Hitung derajat keanggotaan (Fuzzifikasi) untuk ke-5 input.
+   - Baca 15 Rule Base (R1-R15) langsung dari tabel 'rule_base', gunakan operator MIN untuk implikasi aturan, dan MAX untuk agregasi.
+   - Hitung nilai akhir menggunakan Defuzzifikasi Centroid (Skor Z skala 0 - 100).
+   - Simpan skor ke 'skor_defuzzifikasi' dan status ('Tidak_Layak', 'Menengah', atau 'Layak') ke tabel 'hasil_evaluasi_fuzzy'.
+
+4. TAMPILAN WEB (UI):
+   - Form Pendataan Warga & Input 5 Kriteria Bansos.
+   - Halaman Laporan Hasil Evaluasi (Tabel daftar warga, nilai skor Z, dan status keputusan).
+
+Mohon berikan struktur folder projek beserta kode program (PHP/Python/Node.js) yang rapi, transparan, dan siap dijalankan.
